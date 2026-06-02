@@ -75,7 +75,15 @@
   .chip{background:var(--paper);border:1px solid var(--line);border-radius:99px;padding:8px 11px;font-size:12.5px;font-weight:800;color:var(--ink);cursor:pointer}
   .chip.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
   .guide{font-size:13.5px;color:var(--soft);line-height:1.5;margin-top:12px}
-  .routecard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px;box-shadow:var(--shadow)}
+  .musiccard,.routecard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px;box-shadow:var(--shadow)}
+  .musiccard{margin-top:14px}
+  .musichead h3{font-family:Georgia,serif;font-size:21px;line-height:1.1}
+  .musichead p{font-size:13px;color:var(--soft);line-height:1.45;margin-top:4px}
+  .musicpick{display:grid;grid-template-columns:1fr 1.7fr auto;gap:8px;margin-top:12px;align-items:end}
+  .musicframe{margin-top:12px;border:1px solid var(--line);border-radius:12px;background:var(--paper);overflow:hidden;min-height:82px}
+  .musicframe iframe{display:block;width:100%;border:0}
+  .musicempty{font-family:Georgia,serif;font-style:italic;text-align:center;color:var(--soft);font-size:14px;padding:18px 10px}
+  .musiclink{display:inline-block;margin-top:10px;color:var(--blue);font-size:13px;font-weight:850;text-decoration:none}
   .routehead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}
   .routehead h3{font-family:Georgia,serif;font-size:21px;line-height:1.1}
   .routehead p{font-size:13px;color:var(--soft);line-height:1.45;margin-top:4px}
@@ -118,7 +126,7 @@
     .stat .n{font-size:28px}
     .stat .l{font-size:9.5px;letter-spacing:.08em}
     .bigplan{grid-template-columns:repeat(2,1fr)}
-    .routepick,.routeactions,.favform,.itinerary{grid-template-columns:1fr}
+    .musicpick,.routepick,.routeactions,.favform,.itinerary{grid-template-columns:1fr}
     .mapframe{height:240px}
     .frow{grid-template-columns:1fr}
     .week-head{padding:14px 12px}
@@ -145,6 +153,17 @@
     </div>
 
     <div class="today" id="todayCard"></div>
+
+    <div class="musiccard">
+      <div class="musichead"><h3>Run soundtrack</h3><p>Paste a Spotify or YouTube link to keep your training music inside the app.</p></div>
+      <div class="musicpick">
+        <div><label>Name</label><input id="musicName" type="text" placeholder="Long run mix"></div>
+        <div><label>Spotify / YouTube link</label><input id="musicUrl" type="url" placeholder="https://open.spotify.com/... or https://youtube.com/..."></div>
+        <button id="saveMusicBtn">Save</button>
+      </div>
+      <div class="musicframe" id="musicFrame"></div>
+      <a class="musiclink" id="musicOpen" target="_blank" rel="noopener"></a>
+    </div>
   </div>
 
   <div class="tabpanel" id="tab-plan">
@@ -211,76 +230,76 @@
 const KEY='running_30_40k_v1';
 const CHECK='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
 let openWeek=0;
-let state={done:{},log:[],route:{location:'',distance:'',style:'green loop'},routes:[]};
+let state={done:{},log:[],route:{location:'',distance:'',style:'green loop'},routes:[],music:{name:'',url:''}};
 
 const WEEKS=[
- {k:18,long:'8 km',t:'Week 1 - settle in',d:'Four gentle outings. Learn the rhythm before asking for more.',runs:[
+ {k:18,long:'8 km',t:'Week 1 - Settle in',d:'Four gentle outings. Learn the rhythm before asking for more.',runs:[
   ['Easy 5 km','Conversational. Finish feeling you could continue.',['easy','30-45 min'],'If this feels hard, use 3 min jog / 1 min walk.'],
   ['Easy 4 km + mobility','Short and light. Add 10 minutes hips, calves, hamstrings.',['easy','mobility'],'You are building durability, not proving anything.'],
   ['Easy 5 km','Same relaxed effort as run 1. Keep the breathing quiet.',['easy'],'Repeatability is the win.'],
   ['Long 8 km','Slowest run of the week. Walk breaks are allowed.',['long','slow'],'Long means longer, not faster.']
  ]},
- {k:22,long:'10 km',t:'Week 2 - first small build',d:'A little more volume, still very calm.',runs:[
+ {k:22,long:'10 km',t:'Week 2 - First small build',d:'A little more volume, still very calm.',runs:[
   ['Easy 5 km','Relaxed pace. Check posture every kilometer.',['easy']],
   ['Easy 5 km + 4 strides','After the run, 4 x 15 sec smooth quick steps, full walk back.',['easy','strides'],'Strides should feel playful, never like a sprint.'],
   ['Easy 6 km','Stay in the comfort zone.',['easy']],
   ['Long 10 km','Use walk breaks before you need them.',['long','fuel practice'],'Drink something after. Start treating long runs as small expeditions.']
  ]},
- {k:25,long:'12 km',t:'Week 3 - durable legs',d:'The long run reaches 12 km. Keep all weekdays boring.',runs:[
+ {k:25,long:'12 km',t:'Week 3 - Durable legs',d:'The long run reaches 12 km. Keep all weekdays boring.',runs:[
   ['Easy 6 km','No pace target. Soft feet, relaxed shoulders.',['easy']],
   ['Strength 20 min + walk','Bodyweight squats, calf raises, glute bridges, planks.',['strength'],'This counts. Strong legs get you to 40 km.'],
   ['Easy 7 km','If tired, make it 5 km. Consistency beats bravado.',['easy']],
   ['Long 12 km','Practice eating or drinking at 60-70 minutes if needed.',['long','fuel']]
  ]},
- {k:20,long:'9 km',t:'Week 4 - down week',d:'Absorb the first block. Lower volume on purpose.',runs:[
+ {k:20,long:'9 km',t:'Week 4 - Down week',d:'Absorb the first block. Lower volume on purpose.',runs:[
   ['Easy 5 km','Keep it light.',['easy']],
   ['Easy 4 km + mobility','Short reset run.',['easy','mobility']],
   ['Easy 6 km','Only if legs feel good. Otherwise walk 45 min.',['easy']],
   ['Long 9 km','Comfortable, steady, no heroics.',['long','down week']]
  ]},
- {k:29,long:'15 km',t:'Week 5 - longer engine',d:'The long run moves into real endurance territory.',runs:[
+ {k:29,long:'15 km',t:'Week 5 - Longer engine',d:'The long run moves into real endurance territory.',runs:[
   ['Easy 7 km','Relaxed. Stay patient.',['easy']],
   ['Easy 6 km + strides','4 x 20 sec smooth strides after.',['easy','strides']],
   ['Easy 6 km','Quiet breathing. Stop early if anything sharp appears.',['easy']],
   ['Long 15 km','Start very slow. Carry water. Practice one small fuel stop.',['long','fuel']]
  ]},
- {k:33,long:'18 km',t:'Week 6 - confidence week',d:'You pass the half-marathon approach zone without chasing pace.',runs:[
+ {k:33,long:'18 km',t:'Week 6 - Confidence week',d:'You pass the half-marathon approach zone without chasing pace.',runs:[
   ['Easy 7 km','Keep the legs fresh.',['easy']],
   ['Steady 8 km','Middle 3 km slightly firmer, still controlled.',['steady'],'This is not speed work. Just a little rhythm.'],
   ['Easy 8 km','Easy enough to talk.',['easy']],
   ['Long 18 km','Run-walk is absolutely fine. The finish matters.',['long','fuel']]
  ]},
- {k:37,long:'21 km',t:'Week 7 - half distance',d:'A big psychological marker. Protect recovery.',runs:[
+ {k:37,long:'21 km',t:'Week 7 - Half distance',d:'A big psychological marker. Protect recovery.',runs:[
   ['Easy 8 km','Shakeout. No pushing.',['easy']],
   ['Easy 8 km + mobility','Add 10 minutes mobility after.',['easy','mobility']],
   ['Easy 8 km','If tired, shorten this. The long run is the key session.',['easy']],
   ['Long 21 km','Carry fuel and water. Take calories every 40-50 minutes.',['long','fuel','walk breaks']]
  ]},
- {k:30,long:'15 km',t:'Week 8 - down week',d:'Let the body catch up before the final build.',runs:[
+ {k:30,long:'15 km',t:'Week 8 - Down week',d:'Let the body catch up before the final build.',runs:[
   ['Easy 7 km','Gentle.',['easy']],
   ['Easy 6 km + strength','Short strength after or later that day.',['easy','strength']],
   ['Easy 7 km','Keep it smooth.',['easy']],
   ['Long 15 km','Comfortable endurance only.',['long','down week']]
  ]},
- {k:42,long:'25 km',t:'Week 9 - the real build',d:'This is the first week that feels like ultra-prep. Stay humble.',runs:[
+ {k:42,long:'25 km',t:'Week 9 - The real build',d:'This is the first week that feels like ultra-prep. Stay humble.',runs:[
   ['Easy 8 km','No faster than usual.',['easy']],
   ['Steady 10 km','Last 3 km slightly firmer if you feel good.',['steady']],
   ['Easy 7 km','Recovery-oriented.',['easy']],
   ['Long 25 km','Slow, fueled, deliberate. Walk hills if needed.',['long','fuel','practice kit']]
  ]},
- {k:46,long:'28 km',t:'Week 10 - peak endurance',d:'Peak week. The long run teaches you the final hour.',runs:[
+ {k:46,long:'28 km',t:'Week 10 - Peak endurance',d:'Peak week. The long run teaches you the final hour.',runs:[
   ['Easy 9 km','Comfortable.',['easy']],
   ['Easy 10 km','Split into run-walk if needed.',['easy']],
   ['Easy 8 km + mobility','Leave something in the tank.',['easy','mobility']],
   ['Long 28 km','Full dress rehearsal: shoes, socks, fluids, fuel.',['long','dress rehearsal']]
  ]},
- {k:35,long:'20 km',t:'Week 11 - taper begins',d:'Reduce volume. Keep the habit alive.',runs:[
+ {k:35,long:'20 km',t:'Week 11 - Taper begins',d:'Reduce volume. Keep the habit alive.',runs:[
   ['Easy 8 km','Legs should start to feel fresher.',['easy']],
   ['Easy 7 km + strides','4 very relaxed strides.',['easy','strides']],
   ['Easy 5 km','Short and happy.',['easy']],
   ['Long 20 km','Last medium-long run. Do not test yourself.',['long','taper']]
  ]},
- {k:38,long:'30-40 km',t:'Week 12 - do it',d:'Arrive rested. Finish with patience and pride.',runs:[
+ {k:38,long:'30-40 km',t:'Week 12 - Do it',d:'Arrive rested. Finish with patience and pride.',runs:[
   ['Easy 6 km','Keep it light.',['easy']],
   ['Easy 5 km + mobility','Final tune-up.',['easy','mobility']],
   ['Rest or 20 min walk','Sleep, hydrate, prepare kit.',['rest']],
@@ -302,7 +321,7 @@ const Store=(function(){
 })();
 
 function uid(w,r){return w+'-'+r}
-function load(){try{const v=Store.get(KEY);if(v)state=JSON.parse(v)}catch(e){};if(!state.done)state.done={};if(!state.log)state.log=[];if(!state.route)state.route={location:'',distance:'',style:'green loop'};if(!state.routes)state.routes=[];render()}
+function load(){try{const v=Store.get(KEY);if(v)state=JSON.parse(v)}catch(e){};if(!state.done)state.done={};if(!state.log)state.log=[];if(!state.route)state.route={location:'',distance:'',style:'green loop'};if(!state.routes)state.routes=[];if(!state.music)state.music={name:'',url:''};render()}
 function save(){Store.set(KEY,JSON.stringify(state))}
 function totalRuns(){return WEEKS.reduce((a,w)=>a+w.runs.length,0)}
 function doneCount(){return WEEKS.reduce((a,w,wi)=>a+w.runs.filter((_,ri)=>state.done[uid(wi,ri)]).length,0)}
@@ -404,13 +423,39 @@ function setTab(name){
 }
 function wireTabs(){document.querySelectorAll('.tabbtn').forEach(b=>b.onclick=()=>setTab(b.dataset.tab))}
 
+
+function musicEmbed(url){
+  const u=String(url||'').trim();
+  if(!u)return null;
+  let m=u.match(/open\.spotify\.com\/(playlist|album|track|episode)\/([A-Za-z0-9]+)/);
+  if(m)return {src:`https://open.spotify.com/embed/${m[1]}/${m[2]}?utm_source=generator`,kind:'spotify'};
+  m=u.match(/[?&]list=([A-Za-z0-9_-]+)/);
+  if(m)return {src:`https://www.youtube.com/embed/videoseries?list=${m[1]}`,kind:'youtube'};
+  m=u.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|shorts\/|embed\/))([A-Za-z0-9_-]{6,})/);
+  if(m)return {src:`https://www.youtube.com/embed/${m[1]}`,kind:'youtube'};
+  return null;
+}
+function renderMusic(){
+  const name=document.getElementById('musicName'),url=document.getElementById('musicUrl'),frame=document.getElementById('musicFrame'),open=document.getElementById('musicOpen');
+  if(!name||!url||!frame||!open)return;
+  name.value=state.music.name||'';url.value=state.music.url||'';
+  const emb=musicEmbed(state.music.url);
+  if(emb){const h=emb.kind==='spotify'?152:220;frame.innerHTML=`<iframe src="${esc(emb.src)}" height="${h}" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`;}
+  else frame.innerHTML='<div class="musicempty">No playlist saved yet.</div>';
+  if(state.music.url){open.href=state.music.url;open.textContent=`Open ${state.music.name||'soundtrack'}`;open.style.display='inline-block';}
+  else{open.removeAttribute('href');open.textContent='';open.style.display='none';}
+}
+function wireMusic(){
+  document.getElementById('saveMusicBtn').onclick=()=>{const name=document.getElementById('musicName'),url=document.getElementById('musicUrl');state.music={name:name.value.trim(),url:url.value.trim()};save();renderMusic()};
+}
+
 function renderLog(){
   const host=document.getElementById('log');
   if(!state.log.length){host.innerHTML='<div class="empty">No runs logged yet. A short easy run still counts.</div>';return}
   const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   host.innerHTML=state.log.slice().reverse().map(e=>{const d=new Date(e.date+'T00:00:00');return `<div class="entry"><div class="date">${M[d.getMonth()]}<span>${d.getDate()}</span></div><div class="body"><div class="f">${e.type}</div><div class="m">${fmtKm(e.km)} km${e.minutes?' - '+e.minutes+' min':''} - ${e.feel}</div>${e.note?`<div class="nt">"${e.note}"</div>`:''}</div></div>`}).join('');
 }
-function render(){renderStats();renderToday();renderBigPlan();renderRoutes();renderWeeks();renderLog()}
+function render(){renderStats();renderToday();renderBigPlan();renderRoutes();renderWeeks();renderMusic();renderLog()}
 
 document.getElementById('logBtn').onclick=()=>{
   const kmEl=document.getElementById('inKm'),km=+kmEl.value;
@@ -419,8 +464,9 @@ document.getElementById('logBtn').onclick=()=>{
   kmEl.value='';document.getElementById('inMins').value='';document.getElementById('inNote').value='';kmEl.style.borderColor='';
   save();render();
 };
-document.getElementById('resetBtn').onclick=()=>{if(!confirm('Reset all progress, route helpers, and logs? This cannot be undone.'))return;state={done:{},log:[],route:{location:'',distance:'',style:'green loop'},routes:[]};openWeek=0;save();render()};
+document.getElementById('resetBtn').onclick=()=>{if(!confirm('Reset all progress, route helpers, and logs? This cannot be undone.'))return;state={done:{},log:[],route:{location:'',distance:'',style:'green loop'},routes:[],music:{name:'',url:''}};openWeek=0;save();render()};
 wireRoutes();
+wireMusic();
 wireTabs();
 load();
 </script>

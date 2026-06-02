@@ -75,8 +75,21 @@
   .chip{background:var(--paper);border:1px solid var(--line);border-radius:99px;padding:8px 11px;font-size:12.5px;font-weight:800;color:var(--ink);cursor:pointer}
   .chip.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
   .guide{font-size:13.5px;color:var(--soft);line-height:1.5;margin-top:12px}
-  .musiccard,.routecard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px;box-shadow:var(--shadow)}
-  .musiccard{margin-top:14px}
+  .musiccard,.routecard,.trackcard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px;box-shadow:var(--shadow)}
+  .musiccard,.trackcard{margin-top:14px}
+  .trackhead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}
+  .trackhead h3{font-family:Georgia,serif;font-size:21px;line-height:1.1}
+  .trackhead p{font-size:13px;color:var(--soft);line-height:1.45;margin-top:4px}
+  .trackgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .trackstat{background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:11px 8px;text-align:center}
+  .trackstat b{display:block;font-family:Georgia,serif;font-size:25px;line-height:1;color:var(--blue)}
+  .trackstat span{display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);font-weight:850;margin-top:6px}
+  .trackactions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+  .trackactions button{margin:0;background:var(--ink);color:var(--paper);border:none;border-radius:9px;padding:11px 8px;font-weight:850;cursor:pointer}
+  .trackactions button.secondary{background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+  .trackactions button.danger{background:var(--red)}
+  .trackactions button:disabled{opacity:.45;cursor:not-allowed}
+  .tracknote{font-size:12.5px;color:var(--soft);line-height:1.45;margin-top:10px}
   .musichead h3{font-family:Georgia,serif;font-size:21px;line-height:1.1}
   .musichead p{font-size:13px;color:var(--soft);line-height:1.45;margin-top:4px}
   .musicpick{display:grid;grid-template-columns:1fr 1.7fr auto;gap:8px;margin-top:12px;align-items:end}
@@ -126,7 +139,7 @@
     .stat .n{font-size:28px}
     .stat .l{font-size:9.5px;letter-spacing:.08em}
     .bigplan{grid-template-columns:repeat(2,1fr)}
-    .musicpick,.routepick,.routeactions,.favform,.itinerary{grid-template-columns:1fr}
+    .musicpick,.routepick,.routeactions,.favform,.itinerary,.trackgrid,.trackactions{grid-template-columns:1fr}
     .mapframe{height:240px}
     .frow{grid-template-columns:1fr}
     .week-head{padding:14px 12px}
@@ -153,6 +166,21 @@
     </div>
 
     <div class="today" id="todayCard"></div>
+
+    <div class="trackcard">
+      <div class="trackhead"><div><h3>Live run tracker</h3><p>Start GPS tracking when you leave. For best results, keep the app open and the screen awake.</p></div></div>
+      <div class="trackgrid">
+        <div class="trackstat"><b id="trackKm">0</b><span>km</span></div>
+        <div class="trackstat"><b id="trackTime">00:00</b><span>time</span></div>
+        <div class="trackstat"><b id="trackPace">--</b><span>pace / km</span></div>
+      </div>
+      <div class="trackactions">
+        <button id="trackStart">Start</button>
+        <button class="secondary" id="trackPause" disabled>Pause</button>
+        <button class="danger" id="trackStop" disabled>Finish</button>
+      </div>
+      <div class="tracknote" id="trackStatus">GPS is idle. Distance is approximate and depends on phone signal.</div>
+    </div>
 
     <div class="musiccard">
       <div class="musichead"><h3>Run soundtrack</h3><p>Paste a Spotify or YouTube link to keep your training music inside the app.</p></div>
@@ -231,6 +259,7 @@ const KEY='running_30_40k_v1';
 const CHECK='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
 let openWeek=0;
 let state={done:{},log:[],route:{location:'',distance:'',style:'green loop'},routes:[],music:{name:'',url:''}};
+let tracker={active:false,paused:false,km:0,start:0,elapsed:0,last:null,watch:null,timer:null};
 
 const WEEKS=[
  {k:18,long:'8 km',t:'Week 1 - Settle in',d:'Four gentle outings. Learn the rhythm before asking for more.',runs:[
@@ -424,6 +453,52 @@ function setTab(name){
 function wireTabs(){document.querySelectorAll('.tabbtn').forEach(b=>b.onclick=()=>setTab(b.dataset.tab))}
 
 
+
+function fmtTime(ms){const t=Math.floor(ms/1000),h=Math.floor(t/3600),m=Math.floor((t%3600)/60),s=t%60;return h?`${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`}
+function fmtPace(km,ms){if(!km||km<0.02)return '--';const sec=Math.round((ms/1000)/km),m=Math.floor(sec/60),s=sec%60;return `${m}:${String(s).padStart(2,'0')}`}
+function distanceKm(a,b){const R=6371,toRad=x=>x*Math.PI/180;const dLat=toRad(b.lat-a.lat),dLon=toRad(b.lon-a.lon),lat1=toRad(a.lat),lat2=toRad(b.lat);const h=Math.sin(dLat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;return 2*R*Math.atan2(Math.sqrt(h),Math.sqrt(1-h))}
+function trackerElapsed(){return tracker.active&&!tracker.paused?tracker.elapsed+(Date.now()-tracker.start):tracker.elapsed}
+function renderTracker(msg){
+  const km=document.getElementById('trackKm'),time=document.getElementById('trackTime'),pace=document.getElementById('trackPace'),status=document.getElementById('trackStatus');
+  if(!km||!time||!pace||!status)return;
+  const elapsed=trackerElapsed();
+  km.textContent=fmtKm(tracker.km);time.textContent=fmtTime(elapsed);pace.textContent=fmtPace(tracker.km,elapsed);
+  if(msg)status.textContent=msg;
+  document.getElementById('trackStart').disabled=tracker.active&&!tracker.paused;
+  document.getElementById('trackPause').disabled=!tracker.active;
+  document.getElementById('trackPause').textContent=tracker.paused?'Resume':'Pause';
+  document.getElementById('trackStop').disabled=!tracker.active;
+}
+function onTrackPosition(pos){
+  if(!tracker.active||tracker.paused)return;
+  const c=pos.coords,pt={lat:c.latitude,lon:c.longitude},acc=c.accuracy||0;
+  if(acc>80){renderTracker(`GPS accuracy is weak (${Math.round(acc)} m). Keep going; noisy points are ignored.`);return;}
+  if(tracker.last){const d=distanceKm(tracker.last,pt);if(d<1.0)tracker.km+=d;}
+  tracker.last=pt;renderTracker(`Tracking. GPS accuracy about ${Math.round(acc)} m.`);
+}
+function startTracker(){
+  if(!navigator.geolocation){renderTracker('GPS is not available in this browser.');return;}
+  tracker={active:true,paused:false,km:0,start:Date.now(),elapsed:0,last:null,watch:null,timer:null};
+  tracker.watch=navigator.geolocation.watchPosition(onTrackPosition,e=>renderTracker('Location permission or GPS failed. Check browser location settings.'),{enableHighAccuracy:true,maximumAge:1000,timeout:10000});
+  tracker.timer=setInterval(()=>renderTracker(),1000);renderTracker('Waiting for GPS lock...');
+}
+function pauseTracker(){
+  if(!tracker.active)return;
+  if(tracker.paused){tracker.paused=false;tracker.start=Date.now();renderTracker('Tracking resumed.');}
+  else{tracker.elapsed=trackerElapsed();tracker.paused=true;renderTracker('Paused.');}
+}
+function stopTracker(){
+  if(!tracker.active)return;
+  const elapsed=trackerElapsed();
+  if(tracker.watch!=null)navigator.geolocation.clearWatch(tracker.watch);
+  clearInterval(tracker.timer);
+  const km=+tracker.km.toFixed(2),mins=Math.max(1,Math.round(elapsed/60000));
+  if(km>0.05){state.log.push({date:new Date().toISOString().slice(0,10),km:km,type:'Tracked run',minutes:mins,feel:'Easy',note:`GPS tracked in app. Avg pace ${fmtPace(km,elapsed)} / km.`});save();}
+  tracker={active:false,paused:false,km:0,start:0,elapsed:0,last:null,watch:null,timer:null};
+  renderTracker(km>0.05?`Saved ${fmtKm(km)} km to the log.`:'Tracker stopped. Nothing saved because distance was too short.');renderLog();renderStats();
+}
+function wireTracker(){document.getElementById('trackStart').onclick=startTracker;document.getElementById('trackPause').onclick=pauseTracker;document.getElementById('trackStop').onclick=stopTracker;renderTracker()}
+
 function musicEmbed(url){
   const u=String(url||'').trim();
   if(!u)return null;
@@ -455,7 +530,7 @@ function renderLog(){
   const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   host.innerHTML=state.log.slice().reverse().map(e=>{const d=new Date(e.date+'T00:00:00');return `<div class="entry"><div class="date">${M[d.getMonth()]}<span>${d.getDate()}</span></div><div class="body"><div class="f">${e.type}</div><div class="m">${fmtKm(e.km)} km${e.minutes?' - '+e.minutes+' min':''} - ${e.feel}</div>${e.note?`<div class="nt">"${e.note}"</div>`:''}</div></div>`}).join('');
 }
-function render(){renderStats();renderToday();renderBigPlan();renderRoutes();renderWeeks();renderMusic();renderLog()}
+function render(){renderStats();renderToday();renderBigPlan();renderRoutes();renderWeeks();renderTracker();renderMusic();renderLog()}
 
 document.getElementById('logBtn').onclick=()=>{
   const kmEl=document.getElementById('inKm'),km=+kmEl.value;
@@ -466,6 +541,7 @@ document.getElementById('logBtn').onclick=()=>{
 };
 document.getElementById('resetBtn').onclick=()=>{if(!confirm('Reset all progress, route helpers, and logs? This cannot be undone.'))return;state={done:{},log:[],route:{location:'',distance:'',style:'green loop'},routes:[],music:{name:'',url:''}};openWeek=0;save();render()};
 wireRoutes();
+wireTracker();
 wireMusic();
 wireTabs();
 load();

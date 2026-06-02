@@ -1,0 +1,426 @@
+<!-- 30-40K Running Trainer -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  :root{
+    --paper:#f4f1e8;--paper2:#e7dfcf;--ink:#18231f;--soft:#657068;--line:#d1c8b7;
+    --green:#2f7d5a;--blue:#326f8f;--gold:#c29436;--red:#b45339;--card:#fffaf0;
+    --shadow:0 1px 2px rgba(24,35,31,.06),0 10px 26px rgba(24,35,31,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:linear-gradient(180deg,#f7f3ea 0%,var(--paper) 42%,#efe7d8 100%);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Arial,sans-serif;-webkit-font-smoothing:antialiased;padding:24px 16px 88px}
+  .wrap{max-width:820px;margin:0 auto}
+  .tabpanel{display:none}
+  .tabpanel.active{display:block}
+  .tabnav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(255,250,240,.96);border-top:1px solid var(--line);box-shadow:0 -8px 24px rgba(24,35,31,.08);padding:8px max(10px,env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-right));display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .tabbtn{background:transparent;border:1px solid transparent;border-radius:10px;color:var(--soft);font-size:12px;font-weight:850;padding:8px 4px;cursor:pointer}
+  .tabbtn.active{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+  .eyebrow{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--green);font-weight:800}
+  h1{font-family:Georgia,serif;font-size:clamp(34px,9vw,56px);line-height:.96;margin-top:6px;letter-spacing:0}
+  h1 em{font-style:italic;color:var(--blue);font-weight:400}
+  .lead{font-size:15px;line-height:1.45;color:var(--soft);margin-top:12px;max-width:620px}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:22px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:var(--shadow)}
+  .stat .n{font-family:Georgia,serif;font-weight:800;font-size:34px;line-height:1;color:var(--ink)}
+  .stat .n small{font-family:inherit;font-size:15px;color:var(--soft);font-weight:700}
+  .stat .l{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);font-weight:800;margin-top:8px}
+  .stat.good .n{color:var(--green)}
+  .prog{margin-top:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:var(--shadow)}
+  .progrow{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--soft);font-weight:700}
+  .progrow b{color:var(--ink)}
+  .bar{height:10px;background:var(--paper2);border:1px solid var(--line);border-radius:99px;margin-top:10px;overflow:hidden}
+  .bar span{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--green),var(--blue),var(--gold));border-radius:99px;transition:width .35s ease}
+  .today{margin-top:14px;background:#17241f;color:#f7f1e5;border-radius:14px;padding:18px;box-shadow:var(--shadow)}
+  .today .tag{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#d9b45a;font-weight:800}
+  .today h3{font-family:Georgia,serif;font-size:24px;line-height:1.1;margin-top:8px}
+  .today p{font-size:14px;line-height:1.45;color:#d8cfbf;margin-top:8px}
+  button{font:inherit}
+  .today button,.logform button,.routecard button{margin-top:14px;background:var(--green);color:#fff;border:none;border-radius:9px;padding:11px 16px;font-weight:800;cursor:pointer}
+  .today button:active,.logform button:active,.routecard button:active,.chip:active,.routebtn:active{transform:scale(.98)}
+  .sec{display:flex;align-items:center;gap:12px;margin:34px 0 10px}
+  .sec h2{font-family:Georgia,serif;font-size:24px}
+  .rule{height:1px;background:var(--line);flex:1}
+  .week{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-top:10px;overflow:hidden;box-shadow:var(--shadow)}
+  .week.complete .num{background:var(--green);color:#fff}
+  .week-head{display:flex;align-items:center;gap:12px;padding:15px;cursor:pointer;user-select:none}
+  .num{width:34px;height:34px;border-radius:9px;background:var(--paper2);display:grid;place-items:center;font-family:Georgia,serif;font-weight:800;flex:none}
+  .wmeta{flex:1;min-width:0}
+  .wmeta .t{font-weight:800;font-size:15px}
+  .wmeta .d{font-size:12.5px;color:var(--soft);line-height:1.35;margin-top:2px}
+  .count{font-size:12px;color:var(--soft);font-weight:800;white-space:nowrap}
+  .chev{color:var(--soft);transition:transform .2s}
+  .week.open .chev{transform:rotate(90deg)}
+  .runs{display:none;border-top:1px solid var(--line)}
+  .week.open .runs{display:block}
+  .run{border-bottom:1px solid var(--paper2)}
+  .run:last-child{border-bottom:none}
+  .run-main{display:flex;gap:12px;padding:13px 15px;cursor:pointer}
+  .box{width:22px;height:22px;border:2px solid var(--soft);border-radius:7px;display:grid;place-items:center;flex:none;margin-top:1px}
+  .run.done .box{background:var(--green);border-color:var(--green)}
+  .box svg{opacity:0}
+  .run.done .box svg{opacity:1}
+  .rt{font-weight:750;font-size:14.5px;line-height:1.3}
+  .run.done .rt{text-decoration:line-through;color:var(--soft)}
+  .rd{font-size:13px;color:var(--soft);line-height:1.42;margin-top:3px}
+  .detail{padding:0 15px 14px 49px}
+  .pillrow{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+  .pill{font-size:11.5px;font-weight:800;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:99px;padding:5px 8px}
+  .note{font-family:Georgia,serif;font-style:italic;font-size:13px;color:var(--soft);line-height:1.45;margin-top:8px}
+  .dash{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:var(--shadow)}
+  .bigplan{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .miniweek{background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:10px 8px}
+  .miniweek b{display:block;font-family:Georgia,serif;font-size:19px;color:var(--blue)}
+  .miniweek span{display:block;font-size:11px;color:var(--soft);font-weight:800;margin-top:2px}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .chip{background:var(--paper);border:1px solid var(--line);border-radius:99px;padding:8px 11px;font-size:12.5px;font-weight:800;color:var(--ink);cursor:pointer}
+  .chip.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .guide{font-size:13.5px;color:var(--soft);line-height:1.5;margin-top:12px}
+  .routecard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px;box-shadow:var(--shadow)}
+  .routehead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}
+  .routehead h3{font-family:Georgia,serif;font-size:21px;line-height:1.1}
+  .routehead p{font-size:13px;color:var(--soft);line-height:1.45;margin-top:4px}
+  .routepick{display:grid;grid-template-columns:1.4fr .8fr 1fr;gap:10px}
+  .routeactions{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px}
+  .routebtn{display:block;text-align:center;text-decoration:none;background:var(--paper);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:10px 9px;font-size:13px;font-weight:850}
+  .routebtn.alt{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .mapframe{width:100%;height:280px;border:1px solid var(--line);border-radius:12px;margin-top:12px;background:var(--paper);overflow:hidden}
+  .mapframe iframe{display:block;width:100%;height:100%;border:0}
+  .itinerary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+  .istep{background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:10px}
+  .istep b{display:block;font-family:Georgia,serif;font-size:17px;color:var(--blue);line-height:1}
+  .istep span{display:block;font-size:12px;color:var(--soft);font-weight:750;line-height:1.35;margin-top:5px}
+  .routehint{font-size:12.5px;color:var(--soft);line-height:1.45;margin-top:10px}
+  .favform{display:grid;grid-template-columns:1fr 1.6fr auto;gap:8px;margin-top:14px;align-items:end}
+  .favlist{margin-top:12px;border-top:1px solid var(--paper2)}
+  .fav{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;border-bottom:1px solid var(--paper2);padding:11px 0}
+  .fav a{color:var(--blue);font-size:14px;font-weight:800;text-decoration:none;word-break:break-word}
+  .fav span{display:block;color:var(--soft);font-size:12px;margin-top:2px}
+  .fav button{margin:0;background:none;color:var(--soft);border:1px solid var(--line);padding:6px 8px;border-radius:8px;font-size:12px}
+  .logform{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px;box-shadow:var(--shadow)}
+  .frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  label{display:block;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);font-weight:800;margin-bottom:5px}
+  input,textarea,select{width:100%;font:inherit;font-size:14px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:10px}
+  textarea{resize:vertical}
+  .entry{display:flex;gap:12px;padding:13px 4px;border-bottom:1px solid var(--paper2)}
+  .date{font-family:Georgia,serif;font-weight:800;color:var(--green);text-align:center;width:52px;flex:none;font-size:13px;line-height:1.1}
+  .date span{display:block;color:var(--ink);font-size:22px}
+  .entry .body{flex:1}
+  .entry .body .f{font-weight:800;font-size:14px}
+  .entry .body .m{font-size:12.5px;color:var(--soft);margin-top:2px}
+  .entry .body .nt{font-family:Georgia,serif;font-style:italic;font-size:13.5px;margin-top:4px;color:var(--ink)}
+  .empty{text-align:center;color:var(--soft);font-family:Georgia,serif;font-style:italic;padding:18px 4px}
+  .foot{text-align:center;color:var(--soft);font-size:12px;line-height:1.6;margin-top:28px}
+  .reset{background:none;border:none;color:var(--soft);text-decoration:underline;cursor:pointer}
+  @media(max-width:620px){
+    body{padding:18px 12px 86px}
+    .stats{gap:8px}
+    .stat{padding:12px 10px}
+    .stat .n{font-size:28px}
+    .stat .l{font-size:9.5px;letter-spacing:.08em}
+    .bigplan{grid-template-columns:repeat(2,1fr)}
+    .routepick,.routeactions,.favform,.itinerary{grid-template-columns:1fr}
+    .mapframe{height:240px}
+    .frow{grid-template-columns:1fr}
+    .week-head{padding:14px 12px}
+    .run-main{padding:13px 12px}
+    .detail{padding-left:46px}
+  }
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">Your running system</div>
+  <h1>The <em>30-40K</em> Build</h1>
+  <p class="lead">A 12-week phone-friendly training path. The goal is not to race fast. The goal is to arrive healthy, keep showing up, and finish 30-40 km under your own power.</p>
+
+  <div class="tabpanel active" id="tab-today">
+    <div class="stats">
+      <div class="stat good"><div class="n" id="streak">0</div><div class="l">Day streak</div></div>
+      <div class="stat"><div class="n" id="km">0<small>km</small></div><div class="l">Total logged</div></div>
+      <div class="stat"><div class="n" id="sessions">0</div><div class="l">Runs logged</div></div>
+    </div>
+
+    <div class="prog">
+      <div class="progrow"><span>Plan progress</span><span><b id="doneCount">0</b> / <span id="totalCount">0</span> sessions</span></div>
+      <div class="bar"><span id="progfill"></span></div>
+    </div>
+
+    <div class="today" id="todayCard"></div>
+  </div>
+
+  <div class="tabpanel" id="tab-plan">
+    <div class="sec"><h2>12 Week Shape</h2><div class="rule"></div></div>
+    <div class="dash">
+      <div class="bigplan" id="bigPlan"></div>
+      <div class="chips" id="guideChips"></div>
+      <div class="guide" id="guideText"></div>
+    </div>
+
+    <div class="sec"><h2>The Path</h2><div class="rule"></div></div>
+    <div id="weeks"></div>
+  </div>
+
+  <div class="tabpanel" id="tab-routes">
+    <div class="sec"><h2>Route Helper</h2><div class="rule"></div></div>
+    <div class="routecard">
+      <div class="routehead"><div><h3>Find a route for the next run</h3><p>Type a starting area, adjust the distance if needed, then use the embedded map and mini-itinerary without leaving the trainer.</p></div></div>
+      <div class="routepick">
+        <div><label>Start location</label><input id="routeLocation" type="text" placeholder="Zurich HB, home, office"></div>
+        <div><label>Distance km</label><input id="routeDistance" type="number" inputmode="decimal" min="1" step="0.5" placeholder="8"></div>
+        <div><label>Route style</label><select id="routeStyle"><option>green loop</option><option>flat loop</option><option>waterfront</option><option>trail / forest</option><option>city loop</option><option>out and back</option></select></div>
+      </div>
+      <div class="mapframe"><iframe id="routeMap" title="Route map preview" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>
+      <div class="itinerary" id="routeItinerary"></div>
+      <div class="routehint" id="routeHint"></div>
+      <div class="routeactions" id="routeActions"></div>
+      <div class="favform">
+        <div><label>Route name</label><input id="favName" type="text" placeholder="Sunday river loop"></div>
+        <div><label>Route link</label><input id="favUrl" type="url" placeholder="Paste Komoot, Strava, Maps link"></div>
+        <button id="saveRouteBtn">Save</button>
+      </div>
+      <div class="favlist" id="favRoutes"></div>
+    </div>
+  </div>
+
+  <div class="tabpanel" id="tab-log">
+    <div class="sec"><h2>Run Log</h2><div class="rule"></div></div>
+    <div class="logform">
+      <div class="frow">
+        <div><label>Distance</label><input id="inKm" type="number" inputmode="decimal" min="0.1" step="0.1" placeholder="8.0"></div>
+        <div><label>Type</label><select id="inType"><option>Easy run</option><option>Long run</option><option>Walk-run</option><option>Strength</option><option>Rest / mobility</option></select></div>
+      </div>
+      <div class="frow" style="margin-top:10px">
+        <div><label>Minutes optional</label><input id="inMins" type="number" inputmode="numeric" min="1" placeholder="55"></div>
+        <div><label>Effort</label><select id="inFeel"><option>Easy</option><option>Okay</option><option>Hard</option><option>Too much</option></select></div>
+      </div>
+      <div style="margin-top:10px"><label>Notes to future you</label><textarea id="inNote" rows="2" placeholder="Kept it relaxed. Knee felt fine. Took a gel at 70 min."></textarea></div>
+      <button id="logBtn">Log today's run</button>
+    </div>
+    <div id="log"></div>
+    <div class="foot">Everything saves automatically on this device. Phone tip: open this file in your browser and add it to your home screen. &nbsp;.&nbsp; <button class="reset" id="resetBtn">reset all progress</button></div>
+  </div>
+
+  <nav class="tabnav" aria-label="App sections">
+    <button class="tabbtn active" data-tab="today">Today</button>
+    <button class="tabbtn" data-tab="plan">Plan</button>
+    <button class="tabbtn" data-tab="routes">Routes</button>
+    <button class="tabbtn" data-tab="log">Log</button>
+  </nav>
+</div>
+
+<script>
+const KEY='running_30_40k_v1';
+const CHECK='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+let openWeek=0;
+let state={done:{},log:[],route:{location:'',distance:'',style:'green loop'},routes:[]};
+
+const WEEKS=[
+ {k:18,long:'8 km',t:'Week 1 - settle in',d:'Four gentle outings. Learn the rhythm before asking for more.',runs:[
+  ['Easy 5 km','Conversational. Finish feeling you could continue.',['easy','30-45 min'],'If this feels hard, use 3 min jog / 1 min walk.'],
+  ['Easy 4 km + mobility','Short and light. Add 10 minutes hips, calves, hamstrings.',['easy','mobility'],'You are building durability, not proving anything.'],
+  ['Easy 5 km','Same relaxed effort as run 1. Keep the breathing quiet.',['easy'],'Repeatability is the win.'],
+  ['Long 8 km','Slowest run of the week. Walk breaks are allowed.',['long','slow'],'Long means longer, not faster.']
+ ]},
+ {k:22,long:'10 km',t:'Week 2 - first small build',d:'A little more volume, still very calm.',runs:[
+  ['Easy 5 km','Relaxed pace. Check posture every kilometer.',['easy']],
+  ['Easy 5 km + 4 strides','After the run, 4 x 15 sec smooth quick steps, full walk back.',['easy','strides'],'Strides should feel playful, never like a sprint.'],
+  ['Easy 6 km','Stay in the comfort zone.',['easy']],
+  ['Long 10 km','Use walk breaks before you need them.',['long','fuel practice'],'Drink something after. Start treating long runs as small expeditions.']
+ ]},
+ {k:25,long:'12 km',t:'Week 3 - durable legs',d:'The long run reaches 12 km. Keep all weekdays boring.',runs:[
+  ['Easy 6 km','No pace target. Soft feet, relaxed shoulders.',['easy']],
+  ['Strength 20 min + walk','Bodyweight squats, calf raises, glute bridges, planks.',['strength'],'This counts. Strong legs get you to 40 km.'],
+  ['Easy 7 km','If tired, make it 5 km. Consistency beats bravado.',['easy']],
+  ['Long 12 km','Practice eating or drinking at 60-70 minutes if needed.',['long','fuel']]
+ ]},
+ {k:20,long:'9 km',t:'Week 4 - down week',d:'Absorb the first block. Lower volume on purpose.',runs:[
+  ['Easy 5 km','Keep it light.',['easy']],
+  ['Easy 4 km + mobility','Short reset run.',['easy','mobility']],
+  ['Easy 6 km','Only if legs feel good. Otherwise walk 45 min.',['easy']],
+  ['Long 9 km','Comfortable, steady, no heroics.',['long','down week']]
+ ]},
+ {k:29,long:'15 km',t:'Week 5 - longer engine',d:'The long run moves into real endurance territory.',runs:[
+  ['Easy 7 km','Relaxed. Stay patient.',['easy']],
+  ['Easy 6 km + strides','4 x 20 sec smooth strides after.',['easy','strides']],
+  ['Easy 6 km','Quiet breathing. Stop early if anything sharp appears.',['easy']],
+  ['Long 15 km','Start very slow. Carry water. Practice one small fuel stop.',['long','fuel']]
+ ]},
+ {k:33,long:'18 km',t:'Week 6 - confidence week',d:'You pass the half-marathon approach zone without chasing pace.',runs:[
+  ['Easy 7 km','Keep the legs fresh.',['easy']],
+  ['Steady 8 km','Middle 3 km slightly firmer, still controlled.',['steady'],'This is not speed work. Just a little rhythm.'],
+  ['Easy 8 km','Easy enough to talk.',['easy']],
+  ['Long 18 km','Run-walk is absolutely fine. The finish matters.',['long','fuel']]
+ ]},
+ {k:37,long:'21 km',t:'Week 7 - half distance',d:'A big psychological marker. Protect recovery.',runs:[
+  ['Easy 8 km','Shakeout. No pushing.',['easy']],
+  ['Easy 8 km + mobility','Add 10 minutes mobility after.',['easy','mobility']],
+  ['Easy 8 km','If tired, shorten this. The long run is the key session.',['easy']],
+  ['Long 21 km','Carry fuel and water. Take calories every 40-50 minutes.',['long','fuel','walk breaks']]
+ ]},
+ {k:30,long:'15 km',t:'Week 8 - down week',d:'Let the body catch up before the final build.',runs:[
+  ['Easy 7 km','Gentle.',['easy']],
+  ['Easy 6 km + strength','Short strength after or later that day.',['easy','strength']],
+  ['Easy 7 km','Keep it smooth.',['easy']],
+  ['Long 15 km','Comfortable endurance only.',['long','down week']]
+ ]},
+ {k:42,long:'25 km',t:'Week 9 - the real build',d:'This is the first week that feels like ultra-prep. Stay humble.',runs:[
+  ['Easy 8 km','No faster than usual.',['easy']],
+  ['Steady 10 km','Last 3 km slightly firmer if you feel good.',['steady']],
+  ['Easy 7 km','Recovery-oriented.',['easy']],
+  ['Long 25 km','Slow, fueled, deliberate. Walk hills if needed.',['long','fuel','practice kit']]
+ ]},
+ {k:46,long:'28 km',t:'Week 10 - peak endurance',d:'Peak week. The long run teaches you the final hour.',runs:[
+  ['Easy 9 km','Comfortable.',['easy']],
+  ['Easy 10 km','Split into run-walk if needed.',['easy']],
+  ['Easy 8 km + mobility','Leave something in the tank.',['easy','mobility']],
+  ['Long 28 km','Full dress rehearsal: shoes, socks, fluids, fuel.',['long','dress rehearsal']]
+ ]},
+ {k:35,long:'20 km',t:'Week 11 - taper begins',d:'Reduce volume. Keep the habit alive.',runs:[
+  ['Easy 8 km','Legs should start to feel fresher.',['easy']],
+  ['Easy 7 km + strides','4 very relaxed strides.',['easy','strides']],
+  ['Easy 5 km','Short and happy.',['easy']],
+  ['Long 20 km','Last medium-long run. Do not test yourself.',['long','taper']]
+ ]},
+ {k:38,long:'30-40 km',t:'Week 12 - do it',d:'Arrive rested. Finish with patience and pride.',runs:[
+  ['Easy 6 km','Keep it light.',['easy']],
+  ['Easy 5 km + mobility','Final tune-up.',['easy','mobility']],
+  ['Rest or 20 min walk','Sleep, hydrate, prepare kit.',['rest']],
+  ['30-40 km day','Start slower than you think. Eat early. Walk before you are forced to. Finish.',['goal day','fuel','walk breaks'],'Choose 30, 35, or 40 km based on how healthy and ready you feel that week.']
+ ]}
+];
+
+const GUIDES={
+  effort:'Easy means you can speak in full sentences. If you cannot, slow down or walk. This plan cares more about finishing healthy than any pace number.',
+  injury:'Sharp pain, worsening pain, or changed running form means stop. Swap the session for walking or rest. Missing one run is training; forcing one bad run can steal weeks.',
+  fuel:'For runs over 90 minutes, practice calories early: roughly every 40-50 minutes. Water and electrolytes matter more as the long runs grow.',
+  phone:'Tap sessions to tick them off, expand weeks for details, and log real distance below. Your data stays in this browser on this phone.'
+};
+
+const Store=(function(){
+  let ls=false;try{localStorage.setItem('__t','1');localStorage.removeItem('__t');ls=true;}catch(e){}
+  const mem={};
+  return {get(k){return ls?localStorage.getItem(k):(mem[k]||null)},set(k,v){if(ls)localStorage.setItem(k,v);else mem[k]=v}};
+})();
+
+function uid(w,r){return w+'-'+r}
+function load(){try{const v=Store.get(KEY);if(v)state=JSON.parse(v)}catch(e){};if(!state.done)state.done={};if(!state.log)state.log=[];if(!state.route)state.route={location:'',distance:'',style:'green loop'};if(!state.routes)state.routes=[];render()}
+function save(){Store.set(KEY,JSON.stringify(state))}
+function totalRuns(){return WEEKS.reduce((a,w)=>a+w.runs.length,0)}
+function doneCount(){return WEEKS.reduce((a,w,wi)=>a+w.runs.filter((_,ri)=>state.done[uid(wi,ri)]).length,0)}
+function nextRun(){for(let w=0;w<WEEKS.length;w++)for(let r=0;r<WEEKS[w].runs.length;r++)if(!state.done[uid(w,r)])return{w,r,run:WEEKS[w].runs[r]};return null}
+function computeStreak(){if(!state.log.length)return 0;const days=new Set(state.log.map(e=>e.date));let s=0,d=new Date();const f=x=>x.toISOString().slice(0,10);if(!days.has(f(d))){d.setDate(d.getDate()-1);if(!days.has(f(d)))return 0}while(days.has(f(d))){s++;d.setDate(d.getDate()-1)}return s}
+function fmtKm(n){return (+n).toFixed(1).replace(/\.0$/,'')}
+
+function renderStats(){
+  document.getElementById('streak').textContent=computeStreak();
+  const km=state.log.reduce((a,e)=>a+(+e.km||0),0);
+  document.getElementById('km').innerHTML=fmtKm(km)+'<small>km</small>';
+  document.getElementById('sessions').textContent=state.log.length;
+  const dc=doneCount(),tc=totalRuns();
+  document.getElementById('doneCount').textContent=dc;document.getElementById('totalCount').textContent=tc;
+  document.getElementById('progfill').style.width=Math.round(dc/tc*100)+'%';
+}
+function renderToday(){
+  const c=document.getElementById('todayCard'),nx=nextRun();
+  if(!nx){c.innerHTML='<div class="tag">Plan complete</div><h3>You did the build.</h3><p>Now take a recovery week, then decide whether to repeat, extend, or maintain.</p>';return}
+  const w=WEEKS[nx.w],r=nx.run;
+  c.innerHTML=`<div class="tag">Next session - Week ${nx.w+1}</div><h3>${r[0]}</h3><p>${r[1]}</p><button id="doNext">Mark this session done</button>`;
+  document.getElementById('doNext').onclick=()=>{state.done[uid(nx.w,nx.r)]=true;openWeek=nx.w;save();render()};
+}
+function renderBigPlan(){
+  const host=document.getElementById('bigPlan');
+  host.innerHTML=WEEKS.map((w,i)=>`<div class="miniweek"><b>${w.long}</b><span>Week ${i+1} long run</span></div>`).join('');
+  const chips=document.getElementById('guideChips');
+  chips.innerHTML=Object.keys(GUIDES).map((k,i)=>`<button class="chip${i===0?' on':''}" data-k="${k}">${k}</button>`).join('');
+  document.getElementById('guideText').textContent=GUIDES.effort;
+  chips.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{chips.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x===b));document.getElementById('guideText').textContent=GUIDES[b.dataset.k]});
+}
+function renderWeeks(){
+  const wrap=document.getElementById('weeks');wrap.innerHTML='';
+  WEEKS.forEach((w,wi)=>{
+    const done=w.runs.filter((_,ri)=>state.done[uid(wi,ri)]).length,complete=done===w.runs.length,open=openWeek===wi;
+    const el=document.createElement('div');el.className='week'+(complete?' complete':'')+(open?' open':'');
+    el.innerHTML=`<div class="week-head"><div class="num">${complete?CHECK:wi+1}</div><div class="wmeta"><div class="t">${w.t}</div><div class="d">${w.d}</div></div><div class="count">${done}/${w.runs.length}</div><div class="chev">▶</div></div>
+    <div class="runs">${w.runs.map((r,ri)=>`<div class="run${state.done[uid(wi,ri)]?' done':''}"><div class="run-main" data-w="${wi}" data-r="${ri}"><div class="box">${CHECK}</div><div><div class="rt">${r[0]}</div><div class="rd">${r[1]}</div></div></div><div class="detail"><div class="pillrow">${(r[2]||[]).map(p=>`<span class="pill">${p}</span>`).join('')}</div>${r[3]?`<div class="note">${r[3]}</div>`:''}</div></div>`).join('')}</div>`;
+    el.querySelector('.week-head').onclick=()=>{openWeek=open?null:wi;renderWeeks()};
+    el.querySelectorAll('.run-main').forEach(n=>n.onclick=()=>{const id=uid(+n.dataset.w,+n.dataset.r);state.done[id]=!state.done[id];save();render()});
+    wrap.appendChild(el);
+  });
+}
+
+function esc(s){return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function nextDistance(){const nx=nextRun();if(!nx)return 8;const m=String(nx.run[0]).match(/(\d+(?:\.\d+)?)(?:\s*-\s*\d+(?:\.\d+)?)?\s*km/i);return m?m[1]:8}
+function routeQuery(){const loc=(state.route.location||'near me').trim()||'near me';const dist=state.route.distance||nextDistance();const style=state.route.style||'green loop';return {loc,dist,style,q:`${dist} km ${style} running route near ${loc}`}}
+function routeLinks(){const r=routeQuery(),q=encodeURIComponent(r.q),loc=encodeURIComponent(r.loc);return [
+  ['Open full map',`https://www.google.com/maps/search/${q}`,'alt'],
+  ['Komoot planner',`https://www.komoot.com/discover/${loc}`,'']
+]}
+function styleCue(style){
+  const cues={
+    'green loop':'Prioritize parks, river paths, cemeteries, campus paths, and quieter residential streets.',
+    'flat loop':'Follow water, rail corridors, lake edges, and valley paths. Avoid obvious hill neighborhoods.',
+    'waterfront':'Stay close to river, canal, lake, or quay paths and use bridges to close the loop.',
+    'trail / forest':'Search for forest edges, marked paths, gravel roads, and trailheads. Slow pace is expected.',
+    'city loop':'Link calm side streets, plazas, parks, and landmarks. Stoplights are fine today.',
+    'out and back':'Run half the distance out, turn around, then come home on the same reliable line.'
+  };
+  return cues[style]||cues['green loop'];
+}
+function routeItinerary(r){
+  const half=fmtKm((+r.dist||8)/2),third=fmtKm((+r.dist||8)/3);
+  if(r.style==='out and back')return [
+    ['Start',`Leave from ${r.loc} at easy effort.`],
+    ['Turn',`Turn around after about ${half} km.`],
+    ['Finish','Use the same path back; add a tiny loop only if short.']
+  ];
+  return [
+    ['Anchor',`Start near ${r.loc} and choose the calmest direction.`],
+    ['Middle',`${styleCue(r.style)} Aim to be farthest away around ${third}-${half} km.`],
+    ['Close','Use the map to connect back into a loop; walk crossings and hills freely.']
+  ];
+}
+function renderRoutes(){
+  const loc=document.getElementById('routeLocation'),dist=document.getElementById('routeDistance'),style=document.getElementById('routeStyle');
+  if(!loc||!dist||!style)return;
+  loc.value=state.route.location||'';dist.value=state.route.distance||nextDistance();style.value=state.route.style||'green loop';
+  const r=routeQuery();
+  const mapUrl=`https://maps.google.com/maps?q=${encodeURIComponent(r.q)}&output=embed`;
+  document.getElementById('routeMap').src=mapUrl;
+  document.getElementById('routeItinerary').innerHTML=routeItinerary(r).map(x=>`<div class="istep"><b>${esc(x[0])}</b><span>${esc(x[1])}</span></div>`).join('');
+  document.getElementById('routeActions').innerHTML=routeLinks().map(a=>`<a class="routebtn ${a[2]}" href="${a[1]}" target="_blank" rel="noopener">${a[0]}</a>`).join('');
+  document.getElementById('routeHint').textContent=`Embedded map search: ${r.dist} km ${r.style} route near ${r.loc}. It is a route-finding preview, not turn-by-turn navigation.`;
+  document.getElementById('favRoutes').innerHTML=state.routes.length?state.routes.map((x,i)=>`<div class="fav"><div><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name||'Saved route')}</a><span>${esc(x.note||'')}</span></div><button data-i="${i}">delete</button></div>`).join(''):'<div class="empty">No saved routes yet.</div>';
+  document.querySelectorAll('#favRoutes button').forEach(b=>b.onclick=()=>{state.routes.splice(+b.dataset.i,1);save();renderRoutes()});
+}
+function wireRoutes(){
+  ['routeLocation','routeDistance','routeStyle'].forEach(id=>{const el=document.getElementById(id);el.onchange=el.oninput=()=>{state.route.location=document.getElementById('routeLocation').value.trim();state.route.distance=document.getElementById('routeDistance').value;state.route.style=document.getElementById('routeStyle').value;save();renderRoutes()}});
+  document.getElementById('saveRouteBtn').onclick=()=>{const name=document.getElementById('favName'),url=document.getElementById('favUrl');if(!url.value.trim()){url.focus();url.style.borderColor='var(--red)';return}state.routes.push({name:name.value.trim()||'Saved route',url:url.value.trim(),note:routeQuery().q});name.value='';url.value='';url.style.borderColor='';save();renderRoutes()};
+}
+
+
+function setTab(name){
+  document.querySelectorAll('.tabpanel').forEach(p=>p.classList.toggle('active',p.id==='tab-'+name));
+  document.querySelectorAll('.tabbtn').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function wireTabs(){document.querySelectorAll('.tabbtn').forEach(b=>b.onclick=()=>setTab(b.dataset.tab))}
+
+function renderLog(){
+  const host=document.getElementById('log');
+  if(!state.log.length){host.innerHTML='<div class="empty">No runs logged yet. A short easy run still counts.</div>';return}
+  const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  host.innerHTML=state.log.slice().reverse().map(e=>{const d=new Date(e.date+'T00:00:00');return `<div class="entry"><div class="date">${M[d.getMonth()]}<span>${d.getDate()}</span></div><div class="body"><div class="f">${e.type}</div><div class="m">${fmtKm(e.km)} km${e.minutes?' - '+e.minutes+' min':''} - ${e.feel}</div>${e.note?`<div class="nt">"${e.note}"</div>`:''}</div></div>`}).join('');
+}
+function render(){renderStats();renderToday();renderBigPlan();renderRoutes();renderWeeks();renderLog()}
+
+document.getElementById('logBtn').onclick=()=>{
+  const kmEl=document.getElementById('inKm'),km=+kmEl.value;
+  if(!km||km<0.1){kmEl.focus();kmEl.style.borderColor='var(--red)';return}
+  state.log.push({date:new Date().toISOString().slice(0,10),km:km,type:document.getElementById('inType').value,minutes:document.getElementById('inMins').value,feel:document.getElementById('inFeel').value,note:document.getElementById('inNote').value.trim()});
+  kmEl.value='';document.getElementById('inMins').value='';document.getElementById('inNote').value='';kmEl.style.borderColor='';
+  save();render();
+};
+document.getElementById('resetBtn').onclick=()=>{if(!confirm('Reset all progress, route helpers, and logs? This cannot be undone.'))return;state={done:{},log:[],route:{location:'',distance:'',style:'green loop'},routes:[]};openWeek=0;save();render()};
+wireRoutes();
+wireTabs();
+load();
+</script>
